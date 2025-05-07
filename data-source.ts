@@ -8,7 +8,7 @@ export const dataSourceOptions: DataSourceOptions = {
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
-  entities: [__dirname + '/../**/*.entity{.ts,.js}'], // Path to entities
+  entities: [__dirname + '/src/**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/migrations/*{.ts,.js}'], // Path to migrations
   synchronize: true, // IMPORTANT: Disable synchronize when using migrations
   logging: true, // Optional: Enable logging for debugging
