@@ -14,10 +14,10 @@ async function bootstrap() {
     .setTitle('API Management System')
     .setDescription('API Documentation')
     .setVersion('1.0')
-    .addTag('auth', 'Authentication endpoints')
-    .addTag('users', 'User management endpoints') 
-    .addTag('roles', 'Role management endpoints')
-    .addTag('orders', 'Order management endpoints')
+    // .addTag('auth', 'Authentication endpoints')
+    // .addTag('users', 'User management endpoints') 
+    // .addTag('roles', 'Role management endpoints')
+    // .addTag('orders', 'Order management endpoints')
     .addBearerAuth({
       type: 'http',
       scheme: 'bearer',
@@ -33,7 +33,7 @@ async function bootstrap() {
 
   // CORS
   app.enableCors();
-  
+
   // Use the PORT from environment variables
   const port = process.env.PORT || 3000;
   await app.listen(port);
