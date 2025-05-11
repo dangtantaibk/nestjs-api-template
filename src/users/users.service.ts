@@ -1,56 +1,78 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './user.entity';
+import { User } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from './users.dto'; // Import DTO
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private readonly usersRepository: Repository<User>,
   ) {}
 
-  // Return User or null
-  async findOne(username: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { username } });
-  }
-
-  // Use CreateUserDto and hash password
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const saltRounds = 10;
-    // Ensure password is provided before hashing
-    if (!createUserDto.password) {
-      // Use BadRequestException for client errors and single quotes
-      throw new BadRequestException('Password is required to create a user.');
-    }
-    // Format bcrypt.hash arguments
-    const hashedPassword = await bcrypt.hash(
-      createUserDto.password,
-      saltRounds,
-    );
-    const newUser = this.usersRepository.create({
-      username: createUserDto.username,
-      passwordHash: hashedPassword,
-      role: createUserDto.role, // Use role from DTO or let entity default handle it
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const user = this.usersRepository.create({
+      ...createUserDto,
+      password: hashedPassword,
     });
-    // save should return Promise<User>
-    return this.usersRepository.save(newUser);
+    return this.usersRepository.save(user);
   }
 
-  // Example: Add findById
-  async findById(id: number): Promise<User | null> {
-    const user = await this.usersRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+  async findAll(): Promise<User[]> {
+    return this.usersRepository.find();
+  }
+
+  async findOne(id: string): Promise<User> {
+    return this.usersRepository.findOneBy({ id });
+  }
+
+  async findByEmail(email: string): Promise<User> {
+    return this.usersRepository.findOneBy({ email });
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    if (updateUserDto.password) {
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
     }
-    return user;
+    await this.usersRepository.update(id, updateUserDto);
+    return this.findOne(id);
   }
 
-  // Add other methods as needed, e.g., findById, update, delete
+  async remove(id: string): Promise<void> {
+    await this.usersRepository.delete(id);
+  }
+
+  /**
+   * Get all permissions associated with a user
+   * @param userId The ID of the user
+   * @returns Array of permission strings
+   */
+  async getUserPermissions(userId: string): Promise<string[]> {
+    // Get the user with roles relationship
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['roles', 'roles.permissions'],
+    });
+
+    if (!user) {
+      return [];
+    }
+
+    // Extract unique permissions from all roles
+    const permissions = new Set<string>();
+    
+    // Loop through user roles and collect all permissions
+    for (const role of user.roles) {
+      for (const permission of role.permissions) {
+        permissions.add(permission);
+      }
+    }
+
+    return Array.from(permissions);
+  }
+    
 }

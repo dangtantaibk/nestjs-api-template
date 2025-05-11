@@ -1,152 +1,61 @@
-import {
-  Controller,
-  Request,
-  Post,
-  UseGuards,
-  Get,
-  Body,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { Controller, Post, Body, UseGuards, Get, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ValidatedUser, JwtPayload } from './auth.interfaces';
-import { CreateUserDto } from '../users/users.dto';
-import { UsersService } from '../users/users.service';
-import {
-  ApiBody,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-  ApiUnauthorizedResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
-import { JwtAuth } from './jwt-auth.decorator';
+import { LoginDto } from './dto/login.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 
-// Define login DTO for Swagger documentation
-class LoginDto {
-  username: string;
-  password: string;
-}
-
-// Define a type for the request object with the user property
-interface RequestWithUser extends Request {
-  user: ValidatedUser | JwtPayload;
-}
-
-@ApiTags('auth')
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private usersService: UsersService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(AuthGuard('local'))
   @Post('login')
-  @ApiOperation({ summary: 'Login with username and password' })
-  @ApiBody({
-    type: LoginDto,
-    description: 'User credentials',
-  })
+  @ApiOperation({ summary: 'User login' })
   @ApiResponse({
     status: 200,
-    description: 'Returns JWT access token',
+    description: 'User successfully logged in',
     schema: {
       properties: {
-        access_token: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        access_token: { type: 'string' },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            email: { type: 'string' },
+            roles: { type: 'array', items: { type: 'string' } },
+          },
         },
       },
     },
   })
-  @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-  login(@Request() req: RequestWithUser) {
-    return this.authService.login(req.user as ValidatedUser);
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  async login(@Body() loginDto: LoginDto) {
+    const user = await this.authService.validateUser(
+      loginDto.email,
+      loginDto.password,
+    );
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    return this.authService.login(user);
   }
 
-  @JwtAuth()
-  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @Post('refresh')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({
     status: 200,
-    description: 'Returns the user object',
+    description: 'Token successfully refreshed',
     schema: {
       properties: {
-        sub: { type: 'number', example: 1 },
-        username: { type: 'string', example: 'admin' },
-        role: { type: 'string', example: 'admin' },
+        access_token: { type: 'string' },
       },
     },
   })
-  getProfile(@Request() req: RequestWithUser) {
-    return req.user;
-  }
-
-  @Post('register')
-  @ApiOperation({ summary: 'Register a new user' })
-  @ApiBody({ type: CreateUserDto })
-  @ApiResponse({
-    status: 201,
-    description: 'User has been successfully created',
-    schema: {
-      properties: {
-        id: { type: 'number', example: 1 },
-        username: { type: 'string', example: 'newuser' },
-        role: { type: 'string', example: 'user' },
-        createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-      },
-    },
-  })
-  async register(@Body() createUserDto: CreateUserDto) {
-    const user = await this.usersService.create(createUserDto);
-    // Exclude password hash from the response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = user;
-    return result;
-  }
-
-  @Post('refresh-token')
-  @JwtAuth()
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Refresh authentication token' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns new JWT access token',
-    schema: {
-      properties: {
-        access_token: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        },
-      },
-    },
-  })
-  refreshToken(@Request() req: RequestWithUser) {
-    return this.authService.login(req.user as ValidatedUser);
-  }
-
-  @Post('logout')
-  @JwtAuth()
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Logout current user' })
-  @ApiResponse({
-    status: 200,
-    description: 'User has been successfully logged out',
-    schema: {
-      properties: {
-        message: { type: 'string', example: 'Logged out successfully' },
-      },
-    },
-  })
-  logout() {
-    // In a stateless JWT authentication, server-side logout is typically a client concern
-    // But we can implement token blacklisting if needed
-    return { message: 'Logged out successfully' };
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async refreshToken(@CurrentUser() user: any) {
+    return this.authService.refreshToken(user);
   }
 }

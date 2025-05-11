@@ -1,42 +1,45 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { OrdersModule } from './orders/orders.module';
-import { SubscriptionsModule } from './subscriptions/subscriptions.module';
-import { ProductsModule } from './products/products.module';
-import { BlogPostsModule } from './blog-posts/blog-posts.module';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
+import { User } from './users/entities/user.entity';
+import { Role } from './roles/entities/role.entity';
+import { OrdersModule } from './orders/orders.module';
+
+import * as dotenv from 'dotenv';
+import { Logger } from '@nestjs/common';
+import { Order } from './orders/entities/order.entity';
+
+// Ensure environment variables are loaded
+dotenv.config();
+
+const logger = new Logger('Database');
+logger.log(`DATABASE_PASSWORD value: ${process.env.DATABASE_PASSWORD}`);
+logger.log(`DATABASE_USER value: ${process.env.DATABASE_USER}`);
+logger.log(`NODE_ENV value: ${process.env.NODE_ENV}`);
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: configService.get<number>('DB_PORT', 5432),
-        username: configService.get<string>('DB_USERNAME', 'postgres'),
-        password: configService.get<string>('DB_PASSWORD', 'password'),
-        database: configService.get<string>('DB_DATABASE', 'mydatabase'),
-        entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-        synchronize: true,
-      }),
-      inject: [ConfigService],
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DATABASE_HOST,
+      port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+      username: process.env.DATABASE_USER,
+      password: process.env.DATABASE_PASSWORD,
+      database: process.env.DATABASE_NAME,
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      migrations: ['src/database/migrations/*.ts'],
+      synchronize: process.env.NODE_ENV === 'development',
     }),
-    OrdersModule,
-    SubscriptionsModule,
-    ProductsModule,
-    BlogPostsModule,
-    UsersModule,
     AuthModule,
+    UsersModule,
+    RolesModule,
+    OrdersModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

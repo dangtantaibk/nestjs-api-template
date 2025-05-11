@@ -1,0 +1,31 @@
+@startuml authentication_flow
+skinparam componentStyle uml2
+
+actor Client
+participant "AuthController" as AC
+participant "AuthService" as AS
+participant "UsersService" as US
+participant "JwtService" as JS
+database "Database" as DB
+
+Client -> AC: POST /auth/login
+activate AC
+AC -> AS: validateUser(credentials)
+activate AS
+AS -> US: findByEmail(email)
+activate US
+US -> DB: Query User
+DB --> US: Return User
+US --> AS: Return User
+deactivate US
+AS -> AS: validatePassword(password)
+AS -> JS: sign(payload)
+activate JS
+JS --> AS: Return JWT Token
+deactivate JS
+AS --> AC: Return {access_token, refresh_token}
+deactivate AS
+AC --> Client: Response with Tokens
+deactivate AC
+
+@enduml

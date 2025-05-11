@@ -1,0 +1,38 @@
+@startuml authorization_flow
+skinparam componentStyle uml2
+
+actor Client
+participant "Controller" as C
+participant "JwtAuthGuard" as JG
+participant "JwtStrategy" as JS
+participant "RolesGuard" as RG
+participant "RolesService" as RS
+database "Database" as DB
+
+Client -> C: Request with JWT Token
+activate C
+C -> JG: Check Token
+activate JG
+JG -> JS: validate(token)
+activate JS
+JS --> JG: Return User Payload
+deactivate JS
+JG --> C: Allow/Deny
+deactivate JG
+
+C -> RG: Check Roles
+activate RG
+RG -> RS: findAll()
+activate RS
+RS -> DB: Query Roles
+DB --> RS: Return Roles
+RS --> RG: Return Roles
+deactivate RS
+RG -> RG: checkPermissions(roles)
+RG --> C: Allow/Deny
+deactivate RG
+
+C --> Client: Response
+deactivate C
+
+@enduml 

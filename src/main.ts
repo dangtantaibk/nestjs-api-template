@@ -1,52 +1,43 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common'; // Import ValidationPipe
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'; // Import Swagger
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS (optional, adjust as needed)
-  app.enableCors();
+  // Global pipes
+  app.useGlobalPipes(new ValidationPipe());
 
-  // Apply global validation pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // Strip properties that do not have any decorators
-      forbidNonWhitelisted: true, // Throw an error if non-whitelisted properties are provided
-      transform: true, // Automatically transform payloads to DTO instances
-    }),
-  );
-
-  // Setup Swagger
+  // Swagger configuration
   const config = new DocumentBuilder()
-    .setTitle('24h Backend API')
-    .setDescription('API documentation for the 24h backend application')
+    .setTitle('API Management System')
+    .setDescription('API Documentation')
     .setVersion('1.0')
-    // Add JWT authentication to Swagger
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JWT-auth', // This name will be used for @ApiBearerAuth() decorator
-    )
-    // Add tags for each module if desired
     .addTag('auth', 'Authentication endpoints')
-    .addTag('orders')
-    .addTag('subscriptions')
-    .addTag('products')
-    .addTag('blog-posts')
+    .addTag('users', 'User management endpoints') 
+    .addTag('roles', 'Role management endpoints')
+    .addTag('orders', 'Order management endpoints')
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'Authorization',
+      description: 'Enter JWT token',
+      in: 'header',
+    })
     .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document); // Setup Swagger UI at /api endpoint
 
-  const port = process.env.PORT || 3100; // Changed default port to 3100
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
+  // CORS
+  app.enableCors();
+  
+  // Use the PORT from environment variables
+  const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}/api`); // Log the Swagger UI URL
+  console.log(`Application is running on: http://localhost:${port}`);
+  console.log(`Swagger documentation is available at: http://localhost:${port}/api`);
 }
-void bootstrap(); // Mark top-level async call as ignored
+bootstrap();

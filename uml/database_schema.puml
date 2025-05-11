@@ -1,0 +1,25 @@
+@startuml database_schema
+skinparam classAttributeIconSize 0
+
+class User {
+  + id: uuid
+  + email: string
+  + password: string
+  + fullName: string
+  + phone: string
+  + roles: Role[]
+  + createdAt: Date
+  + updatedAt: Date
+}
+
+class Role {
+  + id: uuid
+  + name: string
+  + description: string
+  + permissions: string[]
+  + users: User[]
+}
+
+User "0..*" -- "0..*" Role : has
+
+@enduml 
