@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
+import { LoggerUtil } from 'src/common/utils/logger.util';
 
 @Injectable()
 export class AuthService {
@@ -14,11 +15,7 @@ export class AuthService {
     private configService: ConfigService,
   ) { }
 
-  private readonly logger = new Logger(AuthService.name);
-
   async validateUser(email: string, password: string): Promise<any> {
-    this.logger.log(`======= Validate user attempt for email: ${email}`);
-    this.logger.log(`Step 1: Password provided: ${password}`);
     // Check if the user exists
     const user = await this.usersService.findByEmail(email);
     // Add better error handling
@@ -26,15 +23,11 @@ export class AuthService {
       return null;
     }
 
-    Logger.log(`User: ${JSON.stringify(user)}`, 'AuthService');
-    Logger.log(`Step 2: Password: ${password}`, 'AuthService');
-
     if (!user.password || !password) {
       return null;
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    Logger.log('isMatch', isMatch, 'AuthService');
 
     // If the password matches, return the user without the password
     if (isMatch) {
@@ -46,8 +39,6 @@ export class AuthService {
   }
 
   async login(user: any) {
-    this.logger.log(`======= Processing login for user: ${user.email}`);
-    
     const payload = { email: user.email, sub: user.id, roles: user.roles };
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
@@ -58,6 +49,7 @@ export class AuthService {
       expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
     });
 
+    // Store the refresh token in the database or cache
     return {
       access_token: accessToken,
       refresh_token: refreshToken,

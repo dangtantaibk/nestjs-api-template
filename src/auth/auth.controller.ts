@@ -4,11 +4,14 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { LoggerUtil } from 'src/common/utils/logger.util';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
+  private readonly logger = new Logger(AuthController.name);
+  private readonly startTime = Date.now();
 
   @Post('login')
   @ApiOperation({ summary: 'User login' })
@@ -32,8 +35,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
     const { email, password } = loginDto;
-    Logger.log(`======= Login attempt for email: ${email}`, 'AuthController');
-    Logger.log(`======= Login attempt for password: ${password}`, 'AuthController');
+    
     if (!email || !password) {
       throw new UnauthorizedException('Email and password are required');
     }
@@ -44,7 +46,10 @@ export class AuthController {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    return this.authService.login(user);
+
+    const token = this.authService.login(user);
+    LoggerUtil.log(this.logger, 'Login', { loginDto, token }, this.startTime);
+    return token;
   }
 
   @UseGuards(JwtAuthGuard)

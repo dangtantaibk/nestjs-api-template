@@ -11,6 +11,7 @@ import { OrdersModule } from './orders/orders.module';
 import * as dotenv from 'dotenv';
 import { Logger } from '@nestjs/common';
 import { Order } from './orders/entities/order.entity';
+import { LoggingModule } from './common/logging/logging.module';
 
 // Ensure environment variables are loaded
 dotenv.config();
@@ -40,6 +41,7 @@ logger.log(`NODE_ENV value: ${process.env.NODE_ENV}`);
     UsersModule,
     RolesModule,
     OrdersModule,
+    LoggingModule,
   ],
 })
 export class AppModule {}
