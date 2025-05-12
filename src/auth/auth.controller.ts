@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Get, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, UnauthorizedException, Logger } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -31,6 +31,12 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
+    const { email, password } = loginDto;
+    Logger.log(`======= Login attempt for email: ${email}`, 'AuthController');
+    Logger.log(`======= Login attempt for password: ${password}`, 'AuthController');
+    if (!email || !password) {
+      throw new UnauthorizedException('Email and password are required');
+    }
     const user = await this.authService.validateUser(
       loginDto.email,
       loginDto.password,
