@@ -27,11 +27,17 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<User> {
-    return this.usersRepository.findOneBy({ id });
+    return this.usersRepository.findOne({
+      where: { id },
+      relations: ['roles']
+    });
   }
 
   async findByEmail(email: string): Promise<User> {
-    return this.usersRepository.findOneBy({ email });
+    return this.usersRepository.findOne({
+      where: { email },
+      relations: ['roles']
+    });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {

@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RolesService } from '../../roles/roles.service';
 
@@ -7,7 +7,7 @@ export class RolesGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private rolesService: RolesService,
-  ) {}
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler());
@@ -18,14 +18,15 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     if (!user || !user.roles) {
-      return false;
+      throw new ForbiddenException('Permission denied: Missing user or roles information');
     }
 
-    const userRoles = await this.rolesService.findAll();
-    const hasRole = userRoles.some(role => 
-      requiredRoles.includes(role.name) && user.roles.includes(role.id)
-    );
-
-    return hasRole;
+    // const userRoles = await this.rolesService.findAll();
+    const userRoleNames = user.roles.map(role => role.name);
+    const hasRole = requiredRoles.some(role => userRoleNames.includes(role));
+    if (!hasRole) {
+      throw new ForbiddenException('Permission denied: You do not have sufficient privileges');
+    }
+    return true;
   }
 } 

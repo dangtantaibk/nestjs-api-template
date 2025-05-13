@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Logger, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -7,6 +7,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
+import { LoggerUtil } from 'src/common/utils/logger.util';
 
 @ApiTags('Users')
 @Controller('users')
@@ -14,6 +15,8 @@ import { User } from './entities/user.entity';
 @ApiBearerAuth()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+  private readonly logger = new Logger(UsersController.name);
+  private readonly startTime = Date.now();
 
   @Post()
   @Roles('admin')
@@ -38,8 +41,15 @@ export class UsersController {
     type: [User],
   })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async findAll(): Promise<User[]> {
-    return this.usersService.findAll();
+  async findAll(): Promise<Partial<User>[]> {
+    LoggerUtil.log(this.logger, 'Get all users', {}, this.startTime);
+    const users = await this.usersService.findAll();
+    // Remove sensitive information from each user
+    const sanitizedUsers = users.map(user => {
+      const { password, ...safeUserData } = user;
+      return safeUserData;
+    });
+    return sanitizedUsers;
   }
 
   @Get(':id')
@@ -52,8 +62,16 @@ export class UsersController {
   })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async findOne(@Param('id') id: string): Promise<User> {
-    return this.usersService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<Partial<User>> {
+    const user = await this.usersService.findOne(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    
+    // Remove sensitive information
+    const { password, ...safeUserData } = user;
+    return safeUserData;
+
   }
 
   @Patch(':id')

@@ -1,13 +1,16 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Logger } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Order } from './entities/order.entity';
+import { LoggerUtil } from 'src/common/utils/logger.util';
 
 @ApiTags('Orders')
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+  private readonly logger = new Logger(OrdersController.name);
+  private readonly startTime = Date.now();
 
   @Post()
   @ApiOperation({ summary: 'Create a new order' })
@@ -20,7 +23,9 @@ export class OrdersController {
   @ApiOperation({ summary: 'Get all orders' })
   @ApiResponse({ status: 200, description: 'List of all orders', type: [Order] })
   async findAll(): Promise<Order[]> {
-    return this.ordersService.findAll();
+    const orders = this.ordersService.findAll();
+    LoggerUtil.log(this.logger, 'Get all orders', {}, this.startTime);
+    return orders;
   }
 
   @Get(':id')
