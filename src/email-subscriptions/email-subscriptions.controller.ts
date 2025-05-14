@@ -10,6 +10,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { LoggerUtil } from '../common/utils/logger.util';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 @ApiTags('Email Subscriptions')
 @Controller('email-subscriptions')
@@ -19,9 +20,12 @@ export class EmailSubscriptionsController {
   private readonly startTime = Date.now();
 
   @Post()
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // Limit to 3 requests per minute
+  @UseGuards(ThrottlerGuard)
   @ApiOperation({ summary: 'Subscribe a new email' })
   @ApiResponse({ status: 201, description: 'Email successfully subscribed', type: EmailSubscription })
   @ApiResponse({ status: 409, description: 'Email already subscribed' })
+  @ApiResponse({ status: 429, description: 'Too Many Requests' })
   async create(@Body() createEmailSubscriptionDto: CreateEmailSubscriptionDto): Promise<EmailSubscription> {
     LoggerUtil.log(this.logger, 'Create email subscription', { createEmailSubscriptionDto }, this.startTime);
     return this.emailSubscriptionsService.create(createEmailSubscriptionDto);

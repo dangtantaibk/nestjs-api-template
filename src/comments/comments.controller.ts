@@ -23,6 +23,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { LoggerUtil } from '../common/utils/logger.util';
 import { Request } from 'express';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 @ApiTags('Comments')
 @Controller('comments')
@@ -32,8 +33,11 @@ export class CommentsController {
   private readonly startTime = Date.now();
 
   @Post()
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // Limit to 3 comments per minute
+  @UseGuards(ThrottlerGuard)
   @ApiOperation({ summary: 'Create a new comment' })
   @ApiResponse({ status: 201, description: 'Comment successfully created', type: Comment })
+  @ApiResponse({ status: 429, description: 'Too Many Requests - Rate limit exceeded' })
   async create(@Body() createCommentDto: CreateCommentDto, @Req() request: Request): Promise<Comment> {
     LoggerUtil.log(this.logger, 'Create comment', { createCommentDto }, this.startTime);
     // Extract IP and user agent from the request

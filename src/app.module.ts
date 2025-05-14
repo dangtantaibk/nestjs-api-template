@@ -11,6 +11,7 @@ import { ProductsModule } from './products/products.module';
 import { BlogsModule } from './blogs/blogs.module';
 import { EmailSubscriptionsModule } from './email-subscriptions/email-subscriptions.module';
 import { CommentsModule } from './comments/comments.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 import * as dotenv from 'dotenv';
 import { Logger } from '@nestjs/common';
@@ -45,6 +46,10 @@ logger.log(`NODE_ENV value: ${process.env.NODE_ENV}`);
       migrations: ['src/database/migrations/*.ts'],
       synchronize: process.env.NODE_ENV === 'development',
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // time to live - 1 minute
+      limit: 10,  // 10 requests per ttl globally
+    }]),
     AuthModule,
     UsersModule,
     RolesModule,

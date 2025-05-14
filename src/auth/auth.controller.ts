@@ -4,7 +4,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { LoggerUtil } from 'src/common/utils/logger.util';
+import { LoggerUtil } from '../common/utils/logger.util';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -27,6 +27,7 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
+    LoggerUtil.log(this.logger, 'Login attempt', { email: loginDto.email }, this.startTime);
     const { email, password } = loginDto;
     
     if (!email || !password) {
@@ -41,7 +42,7 @@ export class AuthController {
     }
 
     const token = this.authService.login(user);
-    LoggerUtil.log(this.logger, 'Login', { loginDto, token }, this.startTime);
+    LoggerUtil.log(this.logger, 'Login successful', { email: loginDto.email }, this.startTime);
     return token;
   }
 
@@ -60,8 +61,8 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async refreshToken(@CurrentUser() user: any) {
+    LoggerUtil.log(this.logger, 'Refresh token', { userId: user.userId }, this.startTime);
     const response = this.authService.refreshToken(user);
-    LoggerUtil.log(this.logger, 'Refresh Token', { user, response }, this.startTime);
     return response;
   }
 }

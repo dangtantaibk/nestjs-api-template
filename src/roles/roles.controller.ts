@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Logger } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -7,6 +7,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Role } from './entities/role.entity';
+import { LoggerUtil } from '../common/utils/logger.util';
 
 @ApiTags('Roles')
 @Controller('roles')
@@ -14,6 +15,8 @@ import { Role } from './entities/role.entity';
 @ApiBearerAuth()
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
+  private readonly logger = new Logger(RolesController.name);
+  private readonly startTime = Date.now();
 
   @Post()
   @Roles('admin')
@@ -26,6 +29,7 @@ export class RolesController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   create(@Body() createRoleDto: CreateRoleDto) {
+    LoggerUtil.log(this.logger, 'Create role', { createRoleDto }, this.startTime);
     return this.rolesService.create(createRoleDto);
   }
 
@@ -39,6 +43,7 @@ export class RolesController {
   })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   findAll() {
+    LoggerUtil.log(this.logger, 'Get all roles', {}, this.startTime);
     return this.rolesService.findAll();
   }
 
@@ -53,6 +58,7 @@ export class RolesController {
   @ApiResponse({ status: 404, description: 'Role not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   findOne(@Param('id') id: string) {
+    LoggerUtil.log(this.logger, 'Get role by ID', { id }, this.startTime);
     return this.rolesService.findOne(id);
   }
 
@@ -67,6 +73,7 @@ export class RolesController {
   @ApiResponse({ status: 404, description: 'Role not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
+    LoggerUtil.log(this.logger, 'Update role', { id, updateRoleDto }, this.startTime);
     return this.rolesService.update(id, updateRoleDto);
   }
 
@@ -80,6 +87,7 @@ export class RolesController {
   @ApiResponse({ status: 404, description: 'Role not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   remove(@Param('id') id: string) {
+    LoggerUtil.log(this.logger, 'Delete role', { id }, this.startTime);
     return this.rolesService.remove(id);
   }
 
@@ -97,6 +105,7 @@ export class RolesController {
     @Param('id') id: string,
     @Body('permissions') permissions: string[],
   ) {
+    LoggerUtil.log(this.logger, 'Add permissions', { id, permissions }, this.startTime);
     return this.rolesService.addPermissions(id, permissions);
   }
 
@@ -114,6 +123,7 @@ export class RolesController {
     @Param('id') id: string,
     @Body('permissions') permissions: string[],
   ) {
+    LoggerUtil.log(this.logger, 'Remove permissions', { id, permissions }, this.startTime);
     return this.rolesService.removePermissions(id, permissions);
   }
-} 
+}

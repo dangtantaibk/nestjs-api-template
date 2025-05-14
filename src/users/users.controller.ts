@@ -7,7 +7,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { User } from './entities/user.entity';
-import { LoggerUtil } from 'src/common/utils/logger.util';
+import { LoggerUtil } from '../common/utils/logger.util';
 
 @ApiTags('Users')
 @Controller('users')
@@ -27,17 +27,15 @@ export class UsersController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getCurrentUser(@Request() req): Promise<Partial<User>> {
-    LoggerUtil.log(this.logger, 'Get current user', {}, this.startTime);
+    LoggerUtil.log(this.logger, 'Get current user', { userId: req.user.id }, this.startTime);
     
-    // The user ID is extracted from the JWT token payload
-    const userId = req.user.id; // Adjust this property name based on your JWT strategy
+    const userId = req.user.id;
     
     const user = await this.usersService.findOne(userId);
     if (!user) {
       throw new NotFoundException('Current user not found');
     }
     
-    // Remove sensitive information
     const { password, ...safeUserData } = user;
     return safeUserData;
   }
@@ -53,6 +51,7 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async create(@Body() createUserDto: CreateUserDto): Promise<User> {
+    LoggerUtil.log(this.logger, 'Create user', { createUserDto }, this.startTime);
     return this.usersService.create(createUserDto);
   }
 
@@ -68,7 +67,6 @@ export class UsersController {
   async findAll(): Promise<Partial<User>[]> {
     LoggerUtil.log(this.logger, 'Get all users', {}, this.startTime);
     const users = await this.usersService.findAll();
-    // Remove sensitive information from each user
     const sanitizedUsers = users.map(user => {
       const { password, ...safeUserData } = user;
       return safeUserData;
@@ -87,15 +85,14 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async findOne(@Param('id') id: string): Promise<Partial<User>> {
+    LoggerUtil.log(this.logger, 'Get user by ID', { id }, this.startTime);
     const user = await this.usersService.findOne(id);
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
     
-    // Remove sensitive information
     const { password, ...safeUserData } = user;
     return safeUserData;
-
   }
 
   @Patch(':id')
@@ -109,6 +106,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<User> {
+    LoggerUtil.log(this.logger, 'Update user', { id, updateUserDto }, this.startTime);
     return this.usersService.update(id, updateUserDto);
   }
 
@@ -122,6 +120,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async remove(@Param('id') id: string): Promise<void> {
+    LoggerUtil.log(this.logger, 'Delete user', { id }, this.startTime);
     return this.usersService.remove(id);
   }
 }
