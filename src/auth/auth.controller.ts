@@ -21,14 +21,7 @@ export class AuthController {
     schema: {
       properties: {
         access_token: { type: 'string' },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            email: { type: 'string' },
-            roles: { type: 'array', items: { type: 'string' } },
-          },
-        },
+        refresh_token: { type: 'string' },
       },
     },
   })
@@ -67,6 +60,8 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async refreshToken(@CurrentUser() user: any) {
-    return this.authService.refreshToken(user);
+    const response = this.authService.refreshToken(user);
+    LoggerUtil.log(this.logger, 'Refresh Token', { user, response }, this.startTime);
+    return response;
   }
 }
