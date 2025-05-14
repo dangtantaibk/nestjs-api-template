@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../roles/entities/role.entity';
+import { Comment } from '../comments/entities/comment.entity';
 
 config();
 
@@ -15,7 +16,7 @@ const AppDataSource = new DataSource({
   synchronize: false, // Keep this false in production
   logging: process.env.NODE_ENV === 'development',
   entities: [
-    User, Role
+    User, Role, Comment
   ],
   migrations: ['src/database/migrations/*.ts'],
   migrationsTableName: 'migrations',

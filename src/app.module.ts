@@ -7,10 +7,18 @@ import { RolesModule } from './roles/roles.module';
 import { User } from './users/entities/user.entity';
 import { Role } from './roles/entities/role.entity';
 import { OrdersModule } from './orders/orders.module';
+import { ProductsModule } from './products/products.module';
+import { BlogsModule } from './blogs/blogs.module';
+import { EmailSubscriptionsModule } from './email-subscriptions/email-subscriptions.module';
+import { CommentsModule } from './comments/comments.module';
 
 import * as dotenv from 'dotenv';
 import { Logger } from '@nestjs/common';
 import { Order } from './orders/entities/order.entity';
+import { Product } from './products/entities/product.entity';
+import { BlogPost } from './blogs/entities/blog-post.entity';
+import { EmailSubscription } from './email-subscriptions/entities/email-subscription.entity';
+import { Comment } from './comments/entities/comment.entity';
 import { LoggingModule } from './common/logging/logging.module';
 
 // Ensure environment variables are loaded
@@ -33,7 +41,7 @@ logger.log(`NODE_ENV value: ${process.env.NODE_ENV}`);
       username: process.env.DATABASE_USER,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
-      entities: [User, Role, Order],
+      entities: [User, Role, Order, Product, BlogPost, EmailSubscription, Comment],
       migrations: ['src/database/migrations/*.ts'],
       synchronize: process.env.NODE_ENV === 'development',
     }),
@@ -41,6 +49,10 @@ logger.log(`NODE_ENV value: ${process.env.NODE_ENV}`);
     UsersModule,
     RolesModule,
     OrdersModule,
+    ProductsModule,
+    BlogsModule,
+    EmailSubscriptionsModule,
+    CommentsModule,
     LoggingModule,
   ],
 })
