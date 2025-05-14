@@ -1,12 +1,15 @@
-import { Controller, Get, Post, Body, Param, Delete, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Logger, UseGuards } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Order } from './entities/order.entity';
 import { LoggerUtil } from 'src/common/utils/logger.util';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 @ApiTags('Orders')
 @Controller('orders')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
   private readonly logger = new Logger(OrdersController.name);

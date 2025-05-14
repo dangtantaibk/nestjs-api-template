@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Logger, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Logger, NotFoundException, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -17,6 +17,30 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
   private readonly logger = new Logger(UsersController.name);
   private readonly startTime = Date.now();
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get current user information' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user information',
+    type: User,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getCurrentUser(@Request() req): Promise<Partial<User>> {
+    LoggerUtil.log(this.logger, 'Get current user', {}, this.startTime);
+    
+    // The user ID is extracted from the JWT token payload
+    const userId = req.user.id; // Adjust this property name based on your JWT strategy
+    
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new NotFoundException('Current user not found');
+    }
+    
+    // Remove sensitive information
+    const { password, ...safeUserData } = user;
+    return safeUserData;
+  }
 
   @Post()
   @Roles('admin')
