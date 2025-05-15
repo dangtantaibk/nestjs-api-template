@@ -56,27 +56,38 @@ export class AuthService {
     };
   }
 
-  async refreshToken(token: string) {
+  // Update your refreshToken method to verify the provided token
+  // instead of using the current user from the request
+  async refreshToken(refreshTokenParam: string) {
     try {
-      const payload = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('JWT_SECRET'),
+      // Verify the refresh token
+      const payload = this.jwtService.verify(refreshTokenParam, {
+        secret: this.configService.get<string>('JWT_SECRET')
       });
+      
+      // Get user from the database using payload information
       const user = await this.usersService.findOne(payload.sub);
+      
       if (!user) {
-        throw new UnauthorizedException();
+        throw new UnauthorizedException('User not found');
       }
-
-      const newPayload = { email: user.email, sub: user.id, roles: user.roles };
-      const accessToken = this.jwtService.sign(newPayload, {
+      
+      const payloadUser = { email: user.email, sub: user.id, roles: user.roles };
+      const accessToken = this.jwtService.sign(payloadUser, {
         secret: this.configService.get<string>('JWT_SECRET'),
         expiresIn: this.configService.get<string>('JWT_EXPIRATION'),
       });
-
-      return {
+      const refreshToken = this.jwtService.sign(payloadUser, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
+      });
+      
+      return { 
         access_token: accessToken,
-      };
+        refresh_token: refreshToken,
+       };
     } catch (error) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Invalid refresh token');
     }
   }
 }

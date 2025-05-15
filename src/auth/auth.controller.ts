@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { LoggerUtil } from '../common/utils/logger.util';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -46,9 +47,7 @@ export class AuthController {
     return token;
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('refresh')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({
     status: 200,
@@ -59,10 +58,16 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async refreshToken(@CurrentUser() user: any) {
-    LoggerUtil.log(this.logger, 'Refresh token', { userId: user.userId }, this.startTime);
-    const response = this.authService.refreshToken(user);
-    return response;
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    LoggerUtil.log(this.logger, 'Refresh token attempt', {}, this.startTime);
+    try {
+      const response = await this.authService.refreshToken(refreshTokenDto.refresh_token);
+      LoggerUtil.log(this.logger, 'Token refresh successful', {}, this.startTime);
+      return response;
+    } catch (error) {
+      LoggerUtil.log(this.logger, 'Token refresh failed', { error: error.message }, this.startTime);
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
   }
 }
