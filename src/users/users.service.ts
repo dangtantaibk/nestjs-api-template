@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -11,14 +11,27 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
+    // Hash the password
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+    // Extract roleIds from DTO
+    const { roleIds, ...userProperties } = createUserDto;
+
+    // Create user instance with basic properties
     const user = this.usersRepository.create({
-      ...createUserDto,
+      ...userProperties,
       password: hashedPassword,
     });
+
+    // Assign roles if provided
+    if (roleIds && Array.isArray(roleIds)) {
+      user.roles = await this.getRoleEntities(roleIds);
+    }
+
+    // Save user with relationships
     return this.usersRepository.save(user);
   }
 
@@ -41,11 +54,44 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['roles']
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    // Handle password update if needed
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
     }
-    await this.usersRepository.update(id, updateUserDto);
-    return this.findOne(id);
+    // Handle basic properties (excluding roles)
+    const { roleIds, ...userProperties } = updateUserDto;
+
+    // Update basic properties
+    Object.assign(user, userProperties);
+
+    // Handle roles if provided
+    if (roleIds && Array.isArray(roleIds)) {
+      // Set the roles relationship
+      user.roles = await this.getRoleEntities(roleIds);
+    }
+
+    // Save the updated user with relationships
+    return this.usersRepository.save(user);
+  }
+
+  // Helper method to get role entities by IDs
+  private async getRoleEntities(roleIds: string[]): Promise<any[]> {
+    if (!roleIds.length) return [];
+
+    // Assuming you have a RolesRepository or can query roles
+    // You might need to adjust this based on your actual role entity repository
+    return this.usersRepository.manager.findBy('Role', {
+      id: In(roleIds),
+    });
   }
 
   async remove(id: string): Promise<void> {
@@ -70,7 +116,7 @@ export class UsersService {
 
     // Extract unique permissions from all roles
     const permissions = new Set<string>();
-    
+
     // Loop through user roles and collect all permissions
     for (const role of user.roles) {
       for (const permission of role.permissions) {
@@ -80,5 +126,5 @@ export class UsersService {
 
     return Array.from(permissions);
   }
-    
+
 }
