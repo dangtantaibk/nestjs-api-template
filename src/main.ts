@@ -1,8 +1,8 @@
-import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
-import { CustomLoggerService } from './common/logging/logger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -11,6 +11,10 @@ async function bootstrap() {
 
   // Global pipes
   app.useGlobalPipes(new ValidationPipe());
+
+    // Configure payload size limits (prevents "Payload Too Large" errors)
+  app.use(json({ limit: '30mb' }));  // Limits JSON payload size
+  app.use(urlencoded({ limit: '30mb', extended: true }));  // Limits form data size
 
   // Swagger configuration
   const config = new DocumentBuilder()
