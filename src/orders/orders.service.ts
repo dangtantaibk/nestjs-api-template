@@ -23,11 +23,13 @@ export class OrdersService {
     newOrder.phone = createPublicOrderDto.phone;
     newOrder.product = createPublicOrderDto.product;
     newOrder.notes = createPublicOrderDto.notes;
-    return {
-      id: Math.random().toString(36).substring(2, 9),
-      ...newOrder,
-      createdAt: new Date(),
-    } as Order;
+    //  {
+    //   id: Math.random().toString(36).substring(2, 9),
+    //   ...newOrder,
+    //   createdAt: new Date(),
+    // } as Order;
+    const order = this.ordersRepository.create(newOrder);
+    return this.ordersRepository.save(order);
   }
 
   async findAll(): Promise<Order[]> {

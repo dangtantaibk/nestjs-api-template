@@ -27,9 +27,12 @@ export class UsersController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getCurrentUser(@Request() req): Promise<Partial<User>> {
-    LoggerUtil.log(this.logger, 'Get current user', { userId: req.user.id }, this.startTime);
+    LoggerUtil.log(this.logger, 'Get current user', { userId: req.user.userId }, this.startTime);
     
-    const userId = req.user.id;
+    const userId = req.user.userId;
+    if (!userId) {
+      throw new NotFoundException('User ID not found in request');
+    }
     
     const user = await this.usersService.findOne(userId);
     if (!user) {
